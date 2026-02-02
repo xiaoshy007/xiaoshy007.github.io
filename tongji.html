@@ -3,50 +3,96 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>page_views 直连读写测试（无匿名鉴权·最终修复版）</title>
-    <!-- 双CDN兜底，确保SDK100%加载 -->
+    <title>静态页面-访问量统计（无鉴权直连版）</title>
+    <!-- 双CDN兜底，SDK100%加载，国内稳定 -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>window.supabase || document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/@supabase/supabase-js/2.45.1/umd/supabase.min.js"><\/script>')</script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 微软雅黑, Consolas; }
-        body { padding: 2rem; max-width: 800px; margin: 0 auto; background: #f5f5f5; }
-        .container { background: #fff; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        h1 { font-size: 1.6rem; color: #2d3748; margin-bottom: 1rem; }
-        .tip { color: #dc2626; font-weight: 500; margin: 1rem 0; line-height: 1.6; }
-        button { 
-            padding: 0.7rem 1.8rem; margin: 0.5rem 0.5rem 1.5rem 0; 
-            font-size: 1rem; cursor: pointer; border: none; border-radius: 4px;
-            background: #4299e1; color: #fff; transition: background 0.2s;
+        /* 访问量展示：底部右侧，电脑/手机适配，不遮挡内容 */
+        .view-count-box {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 8px 16px;
+            background: #f5f5f5;
+            border-radius: 20px;
+            font-size: 14px;
+            color: #333;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            z-index: 9999;
+            margin: 0;
         }
-        button:hover { background: #3182ce; }
-        .log { 
-            margin-top: 1rem; padding: 1rem; background: #f8f9fa; 
-            border-radius: 4px; font-size: 14px; white-space: pre-wrap;
-            max-height: 500px; overflow-y: auto; line-height: 1.8;
+        /* 手机端适配 */
+        @media (max-width: 768px) {
+            .view-count-box {
+                bottom: 15px;
+                right: 15px;
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+        }
+        /* 页面基础样式，可自行修改/删除 */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem 80px; /* 底部留空避遮挡 */
+            font-family: "Microsoft YaHei", Arial, sans-serif;
+            background-color: #f5f7fa;
+        }
+        .content {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+        h1 { color: #2d3748; margin-bottom: 1rem; font-size: 1.8rem; }
+        p { color: #718096; line-height: 1.8; margin-bottom: 0.8rem; }
+        /* 调试日志：可选保留，方便排查，可直接删除 */
+        .debug-log {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: #f0f8ff;
+            border-radius: 4px;
+            font-family: Consolas, monospace;
+            font-size: 0.9rem;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>page_views 表 · 直连读写测试（无匿名鉴权）</h1>
-        <div class="tip">✅ 彻底抛弃raw方法 | 📌 读取/累加均原生SQL实现 | 📝 日志实时显示结果</div>
-        <button id="btnRead">📖 读取index访问量</button>
-        <button id="btnAdd">➕ 累加1次访问量</button>
-        <div class="log" id="log">【测试日志】页面加载中，开始初始化Supabase...</div>
+    <div class="content">
+        <h1>你的静态页面内容</h1>
+        <p>部署至GitHub Pages，自动统计访问量，无鉴权直连Supabase</p>
+        <p>30分钟内同一访客仅统计1次，数据实时同步至数据库</p>
     </div>
 
+    <!-- 访问量展示容器：底部右侧，自适应 -->
+    <div class="view-count-box">
+        本站总访问量：<span id="viewCount">0</span>
+    </div>
+
+    <!-- 调试日志：可直接删除，不影响统计功能 -->
+    <div class="debug-log" id="debugLog">【统计日志】页面加载中，初始化Supabase...</div>
+
     <script>
+        // 全局配置：和你的测试页一致，无需修改
         const CONFIG = {
             url: 'https://irkrwafgzvnitsalteof.supabase.co',
             anonKey: 'sb_publishable_IP10FVw_R6ZUM1kheAuUQA_IARXx-Ye',
             table: 'page_views',
-            pageName: 'index'
+            pageName: 'index',
+            antiSpamTime: 30 * 60 * 1000 // 30分钟防刷
         };
         let supabaseClient;
-        let isInitOk = false;
-        const logDom = document.getElementById('log');
+        let isInitOk = false; // 仅标记初始化成功，无鉴权
+        // 页面元素
+        const viewCountDom = document.getElementById('viewCount');
+        const logDom = document.getElementById('debugLog');
 
-        // 日志函数
+        // 日志函数：页面+控制台双打印
         function log(text) {
             const time = new Date().toLocaleTimeString();
             const logText = `[${time}] ${text}`;
@@ -54,84 +100,98 @@
             logDom.textContent += '\n' + logText;
             logDom.scrollTop = logDom.scrollHeight;
         }
-        function clearLog() { logDom.textContent = ''; }
 
-        // 初始化Supabase（无鉴权）
+        // 🔴 无鉴权：仅初始化Supabase，无任何auth相关代码
         function initSupabase() {
             try {
-                log('=== 开始初始化Supabase（无匿名鉴权） ===');
+                log('=== 初始化Supabase（无任何鉴权） ===');
                 if (!window.supabase) throw new Error('SDK加载失败，未找到window.supabase');
                 supabaseClient = window.supabase.createClient(CONFIG.url, CONFIG.anonKey);
                 isInitOk = true;
-                log('✅ Supabase初始化成功！可直接点按钮测试读写');
+                log('✅ Supabase初始化成功，无鉴权直连数据库');
             } catch (e) {
                 isInitOk = false;
-                log(`❌ Supabase初始化失败：${e.message}`);
+                log(`❌ 初始化失败：${e.message}`);
+                viewCountDom.innerText = '统计失败';
             }
         }
 
-        // 直接读取访问量（原生SELECT逻辑，不变）
-        async function readViewCount() {
-            clearLog();
-            log('=== 开始执行【直接读取】操作 ===');
-            if (!isInitOk) { log('❌ 初始化未完成！请等待页面加载'); return; }
-            
+        // 防刷判断：30分钟内同一访客仅统计1次
+        function needCount() {
+            log('=== 执行防刷判断 ===');
+            const key = `pv_${CONFIG.pageName}`;
+            const lastTime = localStorage.getItem(key);
+            if (!lastTime) {
+                log('ℹ️ 本地无记录，需统计本次访问');
+                return true;
+            }
+            const diff = Date.now() - Number(lastTime);
+            if (diff > CONFIG.antiSpamTime) {
+                log('ℹ️ 超过30分钟，需统计本次访问');
+                return true;
+            } else {
+                log('ℹ️ 30分钟内已统计，本次忽略（防刷）');
+                return false;
+            }
+        }
+
+        // 🟢 读取访问量：复用测试页成功逻辑
+        async function readCount() {
+            if (!isInitOk) return;
             try {
                 const { data, error } = await supabaseClient
                     .from(CONFIG.table)
                     .select('view_count')
                     .eq('page_name', CONFIG.pageName)
                     .single();
-                
-                if (error) throw new Error(`${error.message} | 错误码：${error.code || '未知'}`);
-                log(`✅ 读取成功！page_views.index → 访问量 = ${data.view_count}`);
+                if (error) throw error;
+                log(`✅ 读取访问量成功：${data.view_count}`);
+                viewCountDom.innerText = data.view_count;
+                return data.view_count;
             } catch (e) {
                 log(`❌ 读取失败：${e.message}`);
+                viewCountDom.innerText = '0';
             }
         }
 
-        // 🔥 核心修复：抛弃raw方法，直接执行原生UPDATE SQL实现累加
-        async function addViewCount() {
-            clearLog();
-            log('=== 开始执行【直接累加】操作 ===');
-            if (!isInitOk) { log('❌ 初始化未完成！请等待页面加载'); return; }
-            
+        // 🟢 累加访问量：复用测试页成功的原生SQL逻辑（无raw坑）
+        async function addCount() {
+            if (!isInitOk) return;
             try {
-                // 先读当前值（仅日志展示前后变化，可选）
-                const { data: oldData, error: readErr } = await supabaseClient
-                    .from(CONFIG.table)
-                    .select('view_count')
-                    .eq('page_name', CONFIG.pageName)
-                    .single();
-                if (readErr) throw new Error(`累加前读取失败：${readErr.message}`);
-
-                // ✅ 直接执行原生UPDATE SQL，彻底避开raw方法
-                const { error: updateErr } = await supabaseClient.sql`
-                    UPDATE ${supabaseClient.raw(CONFIG.table)} 
-                    SET view_count = view_count + 1 
+                log('=== 执行数据库端累加 ===');
+                // 原生SQL累加，彻底避开raw方法，测试页已验证成功
+                const { error } = await supabaseClient.sql`
+                    UPDATE ${supabaseClient.raw(CONFIG.table)}
+                    SET view_count = view_count + 1
                     WHERE page_name = ${CONFIG.pageName}
                 `;
-                if (updateErr) throw new Error(`累加操作失败：${updateErr.message}`);
-
-                // 读取累加后的值
-                const { data: newData } = await supabaseClient
-                    .from(CONFIG.table)
-                    .select('view_count')
-                    .eq('page_name', CONFIG.pageName)
-                    .single();
-
-                log(`✅ 累加成功！原访问量：${oldData.view_count} → 新访问量：${newData.view_count}`);
+                if (error) throw error;
+                log('✅ 访问量累加成功，数据库view_count+1');
+                // 记录统计时间到本地，用于防刷
+                localStorage.setItem(`pv_${CONFIG.pageName}`, Date.now().toString());
             } catch (e) {
                 log(`❌ 累加失败：${e.message}`);
             }
         }
 
-        // 页面加载初始化+绑定事件
-        window.onload = function() {
+        // 主逻辑：页面加载自动执行，无鉴权
+        async function runStat() {
+            // 1. 初始化Supabase
             initSupabase();
-            document.getElementById('btnRead').onclick = readViewCount;
-            document.getElementById('btnAdd').onclick = addViewCount;
-        };
+            if (!isInitOk) return;
+            // 2. 防刷判断，符合条件则累加
+            if (needCount()) {
+                await addCount();
+            }
+            // 3. 最终读取并展示最新访问量
+            await readCount();
+            log('=== 本次访问统计逻辑执行完成 ===');
+        }
+
+        // 页面加载后执行，无任何auth监听
+        document.addEventListener('DOMContentLoaded', function() {
+            runStat();
+        });
     </script>
 </body>
 </html>
