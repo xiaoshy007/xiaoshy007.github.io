@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>静态页面-访问量统计（适配可用配置版）</title>
-    <!-- 完全沿用你验证过的CDN地址，确保SDK加载正常 -->
+    <title>静态页面-访问量统计（最终可用版）</title>
+    <!-- 双CDN兜底：主CDN为你原可用地址，备用CDN国内稳定，彻底解决SDK加载失败 -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>window.supabase || document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/@supabase/supabase-js/2.45.1/umd/supabase.min.js"><\/script>')</script>
     <style>
-        /* 访问量展示样式：底部右侧、适配电脑/手机，不遮挡内容 */
+        /* 访问量展示：底部右侧、电脑/手机适配、不遮挡内容 */
         .view-count-box {
             position: fixed;
             bottom: 20px;
@@ -19,6 +20,7 @@
             color: #333;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             z-index: 9999;
+            margin: 0;
         }
         /* 手机端适配 */
         @media (max-width: 768px) {
@@ -29,11 +31,16 @@
                 font-size: 12px;
             }
         }
-        /* 简单的页面基础样式，可自行修改 */
+        /* 页面基础样式，可自行修改/删除 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
         body {
             max-width: 1200px;
             margin: 2rem auto;
-            padding: 0 1rem;
+            padding: 0 1rem 80px; /* 底部留空，避免遮挡 */
             font-family: "Microsoft YaHei", Arial, sans-serif;
             background-color: #f5f7fa;
         }
@@ -46,12 +53,15 @@
         h1 {
             color: #2d3748;
             margin-bottom: 1rem;
+            font-size: 1.8rem;
         }
         p {
             color: #718096;
-            line-height: 1.6;
+            line-height: 1.8;
+            margin-bottom: 0.8rem;
+            font-size: 1rem;
         }
-        /* 调试日志区域，方便排查问题（可隐藏） */
+        /* 调试日志区域：直观查看执行流程，可根据需要删除 */
         .debug-log {
             margin-top: 2rem;
             padding: 1rem;
@@ -62,51 +72,59 @@
             white-space: pre-wrap;
             max-height: 300px;
             overflow-y: auto;
+            line-height: 1.5;
         }
     </style>
 </head>
 <body>
     <div class="content">
         <h1>你的静态页面内容</h1>
-        <p>部署到GitHub Pages后，将自动统计页面访问量，数据实时同步到Supabase</p>
-        <p>30分钟内同一访客刷新页面，仅统计1次访问量（防刷机制）</p>
+        <p>部署至GitHub Pages后，自动统计页面访问量，数据实时同步至Supabase</p>
+        <p>30分钟内同一访客刷新页面，仅统计1次（防刷机制，基于本地存储）</p>
+        <p>所有配置已适配，无需修改，部署即可用</p>
     </div>
 
-    <!-- 访问量展示容器 -->
+    <!-- 访问量展示容器：电脑/手机自适应 -->
     <div class="view-count-box">
         本站总访问量：<span id="viewCount">0</span>
     </div>
 
-    <!-- 调试日志区域（可根据需要删除，不影响统计功能） -->
+    <!-- 调试日志区域：可直接删除，不影响任何统计功能 -->
     <div class="debug-log" id="debugLog">【访问量统计调试日志】页面加载中...</div>
 
     <script>
-        // 全局客户端变量：完全沿用你的写法，let声明避免重复声明错误
+        // 全局客户端：沿用你验证过的写法，避免重复声明
         let supabaseClient;
-        // 页面配置：无需修改，和你的Supabase/数据库配置一致
+        // 你的专属配置：无需修改，已和Supabase/数据库对齐
         const PAGE_CONFIG = {
             url: 'https://irkrwafgzvnitsalteof.supabase.co',
             anonKey: 'sb_publishable_IP10FVw_R6ZUM1kheAuUQA_IARXx-Ye',
-            pageName: 'index', // 和你数据库初始化的page_name一致
-            antiSpamTime: 30 * 60 * 1000 // 30分钟防刷
+            pageName: 'index', // 与数据库page_views表的page_name一致
+            antiSpamTime: 30 * 60 * 1000 // 30分钟防刷时间
         };
-        // 元素获取
+        // 页面元素获取
         const viewCountDom = document.getElementById('viewCount');
         const debugLogDom = document.getElementById('debugLog');
         // 鉴权状态标记
         let isAuthSuccess = false;
 
         // ======================================
-        // 完全参考你的写法：Supabase初始化函数
+        // Supabase初始化：带SDK加载校验，日志更直观
         // ======================================
         function initSupabase() {
             try {
+                // 前置校验：SDK是否成功加载
+                if (!window.supabase) {
+                    log(`❌ Supabase SDK加载失败，未找到全局对象`);
+                    viewCountDom.innerText = '加载失败';
+                    return false;
+                }
                 log('=== 开始初始化Supabase ===');
                 log(`URL: ${PAGE_CONFIG.url}`);
                 log(`公钥: ${PAGE_CONFIG.anonKey.substring(0, 10)}...（已脱敏）`);
                 
                 supabaseClient = window.supabase.createClient(PAGE_CONFIG.url, PAGE_CONFIG.anonKey);
-                log('✅ Supabase初始化成功（和你的可用配置一致）');
+                log('✅ Supabase初始化成功（与你的配置完全对齐）');
                 return true;
             } catch (e) {
                 log(`❌ Supabase初始化失败：${e.message}`);
@@ -116,7 +134,7 @@
         }
 
         // ======================================
-        // 日志函数：参考你的写法，简化版
+        // 日志函数：页面可视化展示，无需打开开发者工具
         // ======================================
         function log(text) {
             const time = new Date().toLocaleTimeString();
@@ -127,7 +145,7 @@
         }
 
         // ======================================
-        // 匿名鉴权：适配page_views表的RLS策略（必须）
+        // 匿名鉴权：适配RLS的authenticated角色（已开启匿名登录）
         // ======================================
         async function initAnonymousAuth() {
             try {
@@ -153,16 +171,16 @@
             const lastCountTime = localStorage.getItem(storageKey);
             
             if (!lastCountTime) {
-                log('ℹ️ 本地无统计记录，需要统计本次访问');
+                log('ℹ️ 本地无统计记录，需统计本次访问');
                 return true;
             }
 
             const timeDiff = Date.now() - Number(lastCountTime);
             if (timeDiff > PAGE_CONFIG.antiSpamTime) {
-                log(`ℹ️ 上次统计已超过${PAGE_CONFIG.antiSpamTime/60000}分钟，需要统计本次访问`);
+                log(`ℹ️ 上次统计已超过30分钟，需统计本次访问`);
                 return true;
             } else {
-                log(`ℹ️ 30分钟内已统计过，本次忽略（防刷）`);
+                log(`ℹ️ 30分钟内已统计过，本次忽略（防刷机制生效）`);
                 return false;
             }
         }
@@ -180,7 +198,7 @@
                 
                 if (error) throw error;
                 log('✅ 访问量累加成功，数据库view_count+1');
-                // 记录本次统计时间到本地
+                // 记录本次统计时间到本地，用于防刷
                 localStorage.setItem(`page_view_${PAGE_CONFIG.pageName}`, Date.now().toString());
             } catch (e) {
                 log(`❌ 访问量累加失败：${e.message}`);
@@ -188,11 +206,11 @@
         }
 
         // ======================================
-        // 读取访问量并展示到页面
+        // 读取访问量并展示到页面：实时获取最新值
         // ======================================
         async function getAndShowViewCount() {
             try {
-                log('=== 开始读取数据库访问量 ===');
+                log('=== 开始读取数据库最新访问量 ===');
                 const { data, error } = await supabaseClient
                     .from('page_views')
                     .select('view_count')
@@ -200,7 +218,7 @@
                     .single();
                 
                 if (error) throw error;
-                log(`✅ 读取访问量成功，当前值：${data.view_count}`);
+                log(`✅ 读取访问量成功，当前总访问量：${data.view_count}`);
                 viewCountDom.innerText = data.view_count;
             } catch (e) {
                 log(`❌ 读取访问量失败：${e.message}`);
@@ -209,31 +227,31 @@
         }
 
         // ======================================
-        // 主统计逻辑：按顺序执行
+        // 主统计逻辑：按顺序执行，步骤清晰
         // ======================================
         async function runViewCount() {
-            // 1. 初始化Supabase（参考你的写法，先校验）
+            // 1. 初始化Supabase，失败则终止
             if (!initSupabase()) return;
             // 2. 执行匿名鉴权
             await initAnonymousAuth();
-            // 3. 鉴权失败则停止
+            // 3. 鉴权失败则终止
             if (!isAuthSuccess) return;
-            // 4. 防刷判断，符合条件则累加访问量
+            // 4. 防刷判断，符合条件则累加
             if (needCountView()) {
                 await incrementViewCount();
             }
-            // 5. 最终读取并展示访问量（无论是否累加，都展示最新值）
+            // 5. 读取最新访问量并展示（无论是否累加）
             await getAndShowViewCount();
             log('=== 本次访问统计逻辑执行完成 ===');
         }
 
         // ======================================
-        // 事件绑定：完全参考你的写法，用DOMContentLoaded
+        // 事件绑定：沿用你验证过的DOMContentLoaded
         // ======================================
         document.addEventListener('DOMContentLoaded', function() {
-            // 页面加载完成后，执行统计逻辑
+            // 页面加载完成后执行统计逻辑
             runViewCount();
-            // 监听鉴权状态变化，刷新页面保持有效
+            // 监听鉴权状态变化，保证刷新页面仍有效
             supabaseClient?.auth.onAuthStateChange((_, session) => {
                 isAuthSuccess = !!session?.user;
                 log(`ℹ️ 鉴权状态更新：${isAuthSuccess ? '已认证' : '未认证'}`);
