@@ -177,7 +177,7 @@
     </div>
 
     <!-- 可选：调试日志，如需排查问题保留，删除以下整段不影响统计功能 -->
-    <div class="debug-log" id="debugLog">【访问量统计日志】页面加载中，初始化Supabase...</div>
+ <!--    <div class="debug-log" id="debugLog">【访问量统计日志】页面加载中，初始化Supabase...</div>  -->
 
     <!-- 访问量统计核心JS：纯基础API、无鉴权、30分钟防刷 -->
     <script>
@@ -283,7 +283,7 @@
             initSupabase(); // 初始化Supabase
             if (!isInitOk) return;
             needCount() ? await addCount() : await readCount(); // 防刷判断，符合条件则累加
-            log('=== 本次访问统计逻辑执行完成 ===');
+   //         log('=== 本次访问统计逻辑执行完成 ===');
         }
 
         // 页面DOM加载完成后执行统计
