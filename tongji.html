@@ -4,10 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>页面访问量统计</title>
-  <!-- Supabase官方推荐CDN，稳定适配浏览器 -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <!-- 替换为国内稳定的cdnjs CDN，解决连接超时问题 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/@supabase/supabase-js/2.45.1/umd/supabase.min.js"></script>
   <style>
-    /* 访问量展示样式，适配电脑/手机 */
     .view-count-box {
       position: fixed;
       bottom: 20px;
@@ -31,46 +30,33 @@
   </style>
 </head>
 <body>
-  <!-- 你的页面内容可在这里修改/替换 -->
   <h1>访问量统计页面</h1>
   <p>页面访问量会实时统计并展示在右下角👇</p>
-
-  <!-- 访问量展示容器 -->
   <div class="view-count-box">
     本站总访问量：<span id="viewCount">0</span>
   </div>
 
   <script>
-    // ===================== 已配置你的Supabase信息，无需修改 =====================
+    // 已配置你的Supabase信息，无需修改
     const SUPABASE_URL = 'https://irkrwafgzvnitsalteof.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_IP10FVw_R6ZUM1kheAuUQA_IARXx-Ye';
     const PAGE_NAME = 'index';
     const ANTI_SPAM_TIME = 30 * 60 * 1000; // 30分钟防刷
-    // ============================================================================
 
-    // 【仅1处】Supabase初始化 - 无任何重复，彻底解决声明错误
+    // 仅1处初始化，无重复声明
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    let isAuthenticated = false; // 鉴权状态标记
+    let isAuthenticated = false;
 
-    // 页面加载自动执行统计逻辑
     window.onload = async function() {
-      // 第一步：匿名鉴权（必须，匹配RLS的authenticated角色）
       await initAnonymousAuth();
       if (!isAuthenticated) return;
-
-      // 第二步：防刷判断，符合条件则累加访问量
       if (needCountView()) {
         await incrementViewCount();
         localStorage.setItem(`page_view_${PAGE_NAME}`, Date.now().toString());
       }
-
-      // 第三步：读取并展示访问量
       await getAndShowViewCount();
     };
 
-    /**
-     * 匿名鉴权初始化
-     */
     async function initAnonymousAuth() {
       try {
         const { error } = await supabase.auth.signInAnonymously();
@@ -82,17 +68,11 @@
       }
     }
 
-    /**
-     * 30分钟防刷判断
-     */
     function needCountView() {
       const lastCountTime = localStorage.getItem(`page_view_${PAGE_NAME}`);
       return !lastCountTime || (Date.now() - Number(lastCountTime)) > ANTI_SPAM_TIME;
     }
 
-    /**
-     * 数据库端累加访问量
-     */
     async function incrementViewCount() {
       try {
         const { error } = await supabase
@@ -105,9 +85,6 @@
       }
     }
 
-    /**
-     * 读取访问量并展示
-     */
     async function getAndShowViewCount() {
       try {
         const { data, error } = await supabase
@@ -123,7 +100,6 @@
       }
     }
 
-    // 监听鉴权状态，刷新页面保持有效
     supabase.auth.onAuthStateChange((_, session) => {
       isAuthenticated = !!session?.user;
     });
