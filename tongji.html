@@ -1,108 +1,244 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>页面访问量统计</title>
-  <!-- 替换为国内稳定的cdnjs CDN，解决连接超时问题 -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/@supabase/supabase-js/2.45.1/umd/supabase.min.js"></script>
-  <style>
-    .view-count-box {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      padding: 8px 16px;
-      background: #f5f5f5;
-      border-radius: 20px;
-      font-size: 14px;
-      color: #333;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      z-index: 9999;
-    }
-    @media (max-width: 768px) {
-      .view-count-box {
-        bottom: 15px;
-        right: 15px;
-        padding: 6px 12px;
-        font-size: 12px;
-      }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>静态页面-访问量统计（适配可用配置版）</title>
+    <!-- 完全沿用你验证过的CDN地址，确保SDK加载正常 -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* 访问量展示样式：底部右侧、适配电脑/手机，不遮挡内容 */
+        .view-count-box {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 8px 16px;
+            background: #f5f5f5;
+            border-radius: 20px;
+            font-size: 14px;
+            color: #333;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            z-index: 9999;
+        }
+        /* 手机端适配 */
+        @media (max-width: 768px) {
+            .view-count-box {
+                bottom: 15px;
+                right: 15px;
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+        }
+        /* 简单的页面基础样式，可自行修改 */
+        body {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+            font-family: "Microsoft YaHei", Arial, sans-serif;
+            background-color: #f5f7fa;
+        }
+        .content {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+        h1 {
+            color: #2d3748;
+            margin-bottom: 1rem;
+        }
+        p {
+            color: #718096;
+            line-height: 1.6;
+        }
+        /* 调试日志区域，方便排查问题（可隐藏） */
+        .debug-log {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: #f0f8ff;
+            border-radius: 4px;
+            font-family: Consolas, monospace;
+            font-size: 0.9rem;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
 </head>
 <body>
-  <h1>访问量统计页面</h1>
-  <p>页面访问量会实时统计并展示在右下角👇</p>
-  <div class="view-count-box">
-    本站总访问量：<span id="viewCount">0</span>
-  </div>
+    <div class="content">
+        <h1>你的静态页面内容</h1>
+        <p>部署到GitHub Pages后，将自动统计页面访问量，数据实时同步到Supabase</p>
+        <p>30分钟内同一访客刷新页面，仅统计1次访问量（防刷机制）</p>
+    </div>
 
-  <script>
-    // 已配置你的Supabase信息，无需修改
-    const SUPABASE_URL = 'https://irkrwafgzvnitsalteof.supabase.co';
-    const SUPABASE_ANON_KEY = 'sb_publishable_IP10FVw_R6ZUM1kheAuUQA_IARXx-Ye';
-    const PAGE_NAME = 'index';
-    const ANTI_SPAM_TIME = 30 * 60 * 1000; // 30分钟防刷
+    <!-- 访问量展示容器 -->
+    <div class="view-count-box">
+        本站总访问量：<span id="viewCount">0</span>
+    </div>
 
-    // 仅1处初始化，无重复声明
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    let isAuthenticated = false;
+    <!-- 调试日志区域（可根据需要删除，不影响统计功能） -->
+    <div class="debug-log" id="debugLog">【访问量统计调试日志】页面加载中...</div>
 
-    window.onload = async function() {
-      await initAnonymousAuth();
-      if (!isAuthenticated) return;
-      if (needCountView()) {
-        await incrementViewCount();
-        localStorage.setItem(`page_view_${PAGE_NAME}`, Date.now().toString());
-      }
-      await getAndShowViewCount();
-    };
+    <script>
+        // 全局客户端变量：完全沿用你的写法，let声明避免重复声明错误
+        let supabaseClient;
+        // 页面配置：无需修改，和你的Supabase/数据库配置一致
+        const PAGE_CONFIG = {
+            url: 'https://irkrwafgzvnitsalteof.supabase.co',
+            anonKey: 'sb_publishable_IP10FVw_R6ZUM1kheAuUQA_IARXx-Ye',
+            pageName: 'index', // 和你数据库初始化的page_name一致
+            antiSpamTime: 30 * 60 * 1000 // 30分钟防刷
+        };
+        // 元素获取
+        const viewCountDom = document.getElementById('viewCount');
+        const debugLogDom = document.getElementById('debugLog');
+        // 鉴权状态标记
+        let isAuthSuccess = false;
 
-    async function initAnonymousAuth() {
-      try {
-        const { error } = await supabase.auth.signInAnonymously();
-        if (error) throw error;
-        isAuthenticated = true;
-      } catch (err) {
-        console.error('匿名鉴权失败：', err.message);
-        document.getElementById('viewCount').innerText = '统计异常';
-      }
-    }
+        // ======================================
+        // 完全参考你的写法：Supabase初始化函数
+        // ======================================
+        function initSupabase() {
+            try {
+                log('=== 开始初始化Supabase ===');
+                log(`URL: ${PAGE_CONFIG.url}`);
+                log(`公钥: ${PAGE_CONFIG.anonKey.substring(0, 10)}...（已脱敏）`);
+                
+                supabaseClient = window.supabase.createClient(PAGE_CONFIG.url, PAGE_CONFIG.anonKey);
+                log('✅ Supabase初始化成功（和你的可用配置一致）');
+                return true;
+            } catch (e) {
+                log(`❌ Supabase初始化失败：${e.message}`);
+                viewCountDom.innerText = '初始化失败';
+                return false;
+            }
+        }
 
-    function needCountView() {
-      const lastCountTime = localStorage.getItem(`page_view_${PAGE_NAME}`);
-      return !lastCountTime || (Date.now() - Number(lastCountTime)) > ANTI_SPAM_TIME;
-    }
+        // ======================================
+        // 日志函数：参考你的写法，简化版
+        // ======================================
+        function log(text) {
+            const time = new Date().toLocaleTimeString();
+            const logText = `[${time}] ${text}`;
+            console.log(logText);
+            debugLogDom.textContent += '\n' + logText;
+            debugLogDom.scrollTop = debugLogDom.scrollHeight;
+        }
 
-    async function incrementViewCount() {
-      try {
-        const { error } = await supabase
-          .from('page_views')
-          .update({ view_count: supabase.raw('view_count + 1') })
-          .eq('page_name', PAGE_NAME);
-        if (error) throw error;
-      } catch (err) {
-        console.error('访问量累加失败：', err.message);
-      }
-    }
+        // ======================================
+        // 匿名鉴权：适配page_views表的RLS策略（必须）
+        // ======================================
+        async function initAnonymousAuth() {
+            try {
+                log('=== 开始执行匿名鉴权（RLS策略要求） ===');
+                const { error } = await supabaseClient.auth.signInAnonymously();
+                if (error) throw error;
+                
+                isAuthSuccess = true;
+                log('✅ 匿名鉴权成功，匹配RLS的authenticated角色');
+            } catch (e) {
+                log(`❌ 匿名鉴权失败：${e.message}`);
+                viewCountDom.innerText = '鉴权失败';
+                isAuthSuccess = false;
+            }
+        }
 
-    async function getAndShowViewCount() {
-      try {
-        const { data, error } = await supabase
-          .from('page_views')
-          .select('view_count')
-          .eq('page_name', PAGE_NAME)
-          .single();
-        if (error) throw error;
-        document.getElementById('viewCount').innerText = data.view_count;
-      } catch (err) {
-        console.error('读取访问量失败：', err.message);
-        document.getElementById('viewCount').innerText = '统计中';
-      }
-    }
+        // ======================================
+        // 防刷判断：30分钟内同一访客仅统计1次
+        // ======================================
+        function needCountView() {
+            log('=== 开始防刷判断 ===');
+            const storageKey = `page_view_${PAGE_CONFIG.pageName}`;
+            const lastCountTime = localStorage.getItem(storageKey);
+            
+            if (!lastCountTime) {
+                log('ℹ️ 本地无统计记录，需要统计本次访问');
+                return true;
+            }
 
-    supabase.auth.onAuthStateChange((_, session) => {
-      isAuthenticated = !!session?.user;
-    });
-  </script>
+            const timeDiff = Date.now() - Number(lastCountTime);
+            if (timeDiff > PAGE_CONFIG.antiSpamTime) {
+                log(`ℹ️ 上次统计已超过${PAGE_CONFIG.antiSpamTime/60000}分钟，需要统计本次访问`);
+                return true;
+            } else {
+                log(`ℹ️ 30分钟内已统计过，本次忽略（防刷）`);
+                return false;
+            }
+        }
+
+        // ======================================
+        // 数据库端累加访问量：核心统计逻辑
+        // ======================================
+        async function incrementViewCount() {
+            try {
+                log('=== 开始累加访问量（数据库端操作） ===');
+                const { error } = await supabaseClient
+                    .from('page_views') // 你的访问量统计表名
+                    .update({ view_count: supabaseClient.raw('view_count + 1') })
+                    .eq('page_name', PAGE_CONFIG.pageName); // 匹配当前页面
+                
+                if (error) throw error;
+                log('✅ 访问量累加成功，数据库view_count+1');
+                // 记录本次统计时间到本地
+                localStorage.setItem(`page_view_${PAGE_CONFIG.pageName}`, Date.now().toString());
+            } catch (e) {
+                log(`❌ 访问量累加失败：${e.message}`);
+            }
+        }
+
+        // ======================================
+        // 读取访问量并展示到页面
+        // ======================================
+        async function getAndShowViewCount() {
+            try {
+                log('=== 开始读取数据库访问量 ===');
+                const { data, error } = await supabaseClient
+                    .from('page_views')
+                    .select('view_count')
+                    .eq('page_name', PAGE_CONFIG.pageName)
+                    .single();
+                
+                if (error) throw error;
+                log(`✅ 读取访问量成功，当前值：${data.view_count}`);
+                viewCountDom.innerText = data.view_count;
+            } catch (e) {
+                log(`❌ 读取访问量失败：${e.message}`);
+                viewCountDom.innerText = '统计中';
+            }
+        }
+
+        // ======================================
+        // 主统计逻辑：按顺序执行
+        // ======================================
+        async function runViewCount() {
+            // 1. 初始化Supabase（参考你的写法，先校验）
+            if (!initSupabase()) return;
+            // 2. 执行匿名鉴权
+            await initAnonymousAuth();
+            // 3. 鉴权失败则停止
+            if (!isAuthSuccess) return;
+            // 4. 防刷判断，符合条件则累加访问量
+            if (needCountView()) {
+                await incrementViewCount();
+            }
+            // 5. 最终读取并展示访问量（无论是否累加，都展示最新值）
+            await getAndShowViewCount();
+            log('=== 本次访问统计逻辑执行完成 ===');
+        }
+
+        // ======================================
+        // 事件绑定：完全参考你的写法，用DOMContentLoaded
+        // ======================================
+        document.addEventListener('DOMContentLoaded', function() {
+            // 页面加载完成后，执行统计逻辑
+            runViewCount();
+            // 监听鉴权状态变化，刷新页面保持有效
+            supabaseClient?.auth.onAuthStateChange((_, session) => {
+                isAuthSuccess = !!session?.user;
+                log(`ℹ️ 鉴权状态更新：${isAuthSuccess ? '已认证' : '未认证'}`);
+            });
+        });
+    </script>
 </body>
 </html>
