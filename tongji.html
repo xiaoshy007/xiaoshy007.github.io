@@ -1,143 +1,246 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>静态页面-访问量统计（无鉴权直连版）</title>
-    <!-- 双CDN兜底，SDK100%加载，国内稳定 -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script>window.supabase || document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/@supabase/supabase-js/2.45.1/umd/supabase.min.js"><\/script>')</script>
+    <meta http-equiv="Content-Type" content="text/html; charset=GBK">
+    <title>常用人工智能平台索引</title>
     <style>
-        /* 访问量展示：底部右侧，电脑/手机适配，不遮挡内容 */
-        .view-count-box {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            padding: 8px 16px;
-            background: #f5f5f5;
-            border-radius: 20px;
-            font-size: 14px;
-            color: #333;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            z-index: 9999;
-            margin: 0;
-        }
-        /* 手机端适配 */
-        @media (max-width: 768px) {
-            .view-count-box {
-                bottom: 15px;
-                right: 15px;
-                padding: 6px 12px;
-                font-size: 12px;
-            }
-        }
-        /* 页面基础样式，可自行修改/删除 */
-        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            max-width: 1200px;
-            margin: 2rem auto;
-            padding: 0 1rem 80px; /* 底部留空避遮挡 */
             font-family: "Microsoft YaHei", Arial, sans-serif;
-            background-color: #f5f7fa;
+            margin: 0;
+            padding: 20px;
+            background: #f5f7fa;
         }
-        .content {
+        .container {
+            max-width: 1300px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin: 30px 0;
+            font-size: 2.2em;
+        }
+        .category-box {
             background: white;
-            padding: 2rem;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            border-radius: 12px;
+            padding: 25px;
+            margin: 20px 0;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.08);
         }
-        h1 { color: #2d3748; margin-bottom: 1rem; font-size: 1.8rem; }
-        p { color: #718096; line-height: 1.8; margin-bottom: 0.8rem; }
-        /* 调试日志：可选保留，方便排查，可直接删除 */
+        .tool-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 20px;
+            margin-top: 15px;
+        }
+        .tool-card {
+            border: 1px solid #e1e4e8;
+            border-radius: 8px;
+            padding: 15px;
+            transition: all 0.25s ease;
+            text-decoration: none;
+        }
+        .tool-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+        }
+        .tool-logo {
+            width: 100%;
+            height: 120px;
+            object-fit: contain;
+            margin-bottom: 12px;
+        }
+        .tool-title {
+            font-size: 1.1em;
+            color: #1a73e8;
+            margin: 8px 0;
+        }
+        .tool-desc {
+            font-size: 0.9em;
+            color: #5f6368;
+            line-height: 1.6;
+            min-height: 60px;
+        }
+        .category-title {
+            font-size: 1.4em;
+            color: #1967d2;
+            border-left: 4px solid #1a73e8;
+            padding-left: 15px;
+            margin: 25px 0;
+        }
+        /* 新增：访问量统计样式，贴合原页面风格，居中展示 */
+        .view-count {
+            text-align: center;
+            margin: 20px 0 40px;
+            color: #7f8c8d;
+            font-size: 0.95em;
+            padding-top: 20px;
+            border-top: 1px solid #eaecef;
+        }
+        /* 可选：调试日志样式，如需排查可保留，删除不影响统计 */
         .debug-log {
-            margin-top: 2rem;
+            max-width: 1300px;
+            margin: 0 auto 40px;
             padding: 1rem;
-            background: #f0f8ff;
+            background: #f8f9fa;
             border-radius: 4px;
             font-family: Consolas, monospace;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             white-space: pre-wrap;
-            max-height: 300px;
+            max-height: 200px;
             overflow-y: auto;
+            color: #34495e;
         }
     </style>
+    <!-- 双CDN加载Supabase SDK，国内稳定，100%兜底 -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>window.supabase || document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/@supabase/supabase-js/2.45.1/umd/supabase.min.js"><\/script>')</script>
 </head>
 <body>
-    <div class="content">
-        <h1>你的静态页面内容</h1>
-        <p>部署至GitHub Pages，自动统计访问量，无鉴权直连Supabase</p>
-        <p>30分钟内同一访客仅统计1次，数据实时同步至数据库</p>
+    <div class="container">
+        <h1>常用AI工具导航</h1>
+        
+        <!-- 国内AI工具 -->
+        <div class="category-box">
+            <h2 class="category-title">国内人工智能平台</h2>
+            <div class="tool-grid">
+                <a href="https://yiyan.baidu.com" target="_blank" class="tool-card">
+                    <img src="https://nlp-eb.cdn.bcebos.com/static/eb/asset/topLogo.4a0fc7b7.png" alt="文心一言" class="tool-logo">
+                    <div class="tool-title">文心一言</div>
+                    <div class="tool-desc">百度研发的知识增强大语言模型，中文领域领先的对话式AI工具</div>
+                </a>
+
+                <a href="https://tongyi.aliyun.com" target="_blank" class="tool-card">
+                    <img src="https://img.alicdn.com/imgextra/i4/O1CN01EfJVFQ1uZPd7W4W6i_!!6000000006051-2-tps-112-112.png" alt="通义千问" class="tool-logo">
+                    <div class="tool-title">通义千问</div>
+                    <div class="tool-desc">阿里巴巴多模态大模型，支持文本、图像、音视频处理</div>
+                </a>
+
+                <a href="https://xinghuo.xfyun.cn" target="_blank" class="tool-card">
+                    <img src="https://openres.xfyun.cn/xfyundoc/2024-02-26/d98eb1cf-f074-4628-a896-6136bffe11af/1708931804132/spk.png" alt="讯飞星火" class="tool-logo">
+                    <div class="tool-title">讯飞星火</div>
+                    <div class="tool-desc">科大讯飞认知智能大模型，专注教育、医疗领域应用</div>
+                </a>
+
+                <a href="https://www.doubao.com" target="_blank" class="tool-card">
+                    <img src="https://ai-bot.cn/wp-content/uploads/2023/08/doubao-icon.png" alt="豆包" class="tool-logo">
+                    <div class="tool-title">豆包</div>
+                    <div class="tool-desc">字节跳动推出的AI智能助手,支持文档、表格、PPT等多种文件格式的创作与编辑</div>
+                </a>
+
+                <a href="https://chat.deepseek.com/" target="_blank" class="tool-card">
+                    <img src="https://cdn.deepseek.com/logo.png?x-image-process=image%2Fresize%2Cw_828" alt="Deepseek" class="tool-logo">
+                    <div class="tool-title">Deepseek</div>
+                    <div class="tool-desc">深度求索旗下AI大模型，开源的推理大模型</div>
+                </a>
+                
+                 <a href="https://kimi.moonshot.cn" target="_blank" class="tool-card">
+                    <img src="https://statics.moonshot.cn/kimi-web-seo/assets/kimi-logo-CegIMkbU.png" alt="Kimi" class="tool-logo">
+                    <div class="tool-title">Kimi</div>
+                    <div class="tool-desc">月之暗面对话式AI产品，在超长文本处理、沉浸式交互等方面独具特色</div>
+                </a>
+
+                 <a href="https://chatglm.cn/" target="_blank" class="tool-card">
+                    <img src="data:image/png;base64,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" alt="智谱清言" class="tool-logo">
+                    <div class="tool-title">智谱清言</div>
+                    <div class="tool-desc">北京智谱华章科技有限公司推出的生成式AI助手</div>
+                </a>
+
+                 <a href="https://yuanbao.tencent.com/chat" target="_blank" class="tool-card">
+                    <img src="https://static.yuanbao.tencent.com/modern/_next/static/media/logo_light.d078142a.svg" alt="腾讯元宝" class="tool-logo">
+                    <div class="tool-title">腾讯元宝</div>
+                    <div class="tool-desc">由腾讯研发的大语言模型,具备跨领域知识和自然语言理解能力</div>
+                </a>
+              
+                <a href="https://space.coze.cn/" target="_blank" class="tool-card">
+                    <img src="https://lf-coze-web-cdn.coze.cn/obj/eden-cn/lm-lgvj/ljhwZthlaukjlkulzlp/space/welcome/img-website2.gif" alt="Claude API" class="tool-logo">
+                    <div class="tool-title">扣子空间</div>
+                    <div class="tool-desc">和 Agent 一起开始你的工作</div>
+                </a>
+
+                <a href="https://jimeng.jianying.com/" target="_blank" class="tool-card">
+                    <img src="data:image/png;base64,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" alt="Claude API" class="tool-logo">
+                    <div class="tool-title">即梦</div>
+                    <div class="tool-desc">用AI创作影视</div>
+                </a>
+            </div>
+        </div>
+   
+    <!-- 原底部版权信息 -->
+    <div style="text-align:center; margin:40px 0; color:#95a5a6; font-size:0.9em;">
+        <p>数据更新于2026年1月 | Y_Ray | 技术支持：Y0-0L0-0Y </p>
     </div>
 
-    <!-- 访问量展示容器：底部右侧，自适应 -->
-    <div class="view-count-box">
-        本站总访问量：<span id="viewCount">0</span>
+    <!-- 新增：页面最底部访问量统计标签，贴合原页面风格 -->
+    <div class="view-count">
+        本站总访问量：<span id="viewCount" style="color:#1a73e8; font-weight:500;">0</span> 次
     </div>
 
-    <!-- 调试日志：可直接删除，不影响统计功能 -->
-    <div class="debug-log" id="debugLog">【统计日志】页面加载中，初始化Supabase...</div>
+    <!-- 可选：调试日志，如需排查问题保留，删除以下整段不影响统计功能 -->
+    <div class="debug-log" id="debugLog">【访问量统计日志】页面加载中，初始化Supabase...</div>
 
+    <!-- 访问量统计核心JS：纯基础API、无鉴权、30分钟防刷 -->
     <script>
-        // 全局配置：和你的测试页一致，无需修改
+        // Supabase全局配置，无需修改，和你的环境完全对齐
         const CONFIG = {
             url: 'https://irkrwafgzvnitsalteof.supabase.co',
             anonKey: 'sb_publishable_IP10FVw_R6ZUM1kheAuUQA_IARXx-Ye',
             table: 'page_views',
             pageName: 'index',
-            antiSpamTime: 30 * 60 * 1000 // 30分钟防刷
+            antiSpamTime: 30 * 60 * 1000 // 30分钟防刷，避免重复统计
         };
         let supabaseClient;
-        let isInitOk = false; // 仅标记初始化成功，无鉴权
-        // 页面元素
+        let isInitOk = false; // 仅标记Supabase初始化成功，无任何鉴权逻辑
+        // 页面元素获取
         const viewCountDom = document.getElementById('viewCount');
         const logDom = document.getElementById('debugLog');
 
-        // 日志函数：页面+控制台双打印
+        // 日志函数：页面+控制台双打印，方便排查（可选删除）
         function log(text) {
             const time = new Date().toLocaleTimeString();
             const logText = `[${time}] ${text}`;
             console.log(logText);
-            logDom.textContent += '\n' + logText;
-            logDom.scrollTop = logDom.scrollHeight;
+            logDom && (logDom.textContent += '\n' + logText);
+            logDom && (logDom.scrollTop = logDom.scrollHeight);
         }
 
-        // 🔴 无鉴权：仅初始化Supabase，无任何auth相关代码
+        // 初始化Supabase：无任何鉴权代码，直接直连数据库
         function initSupabase() {
             try {
-                log('=== 初始化Supabase（无任何鉴权） ===');
-                if (!window.supabase) throw new Error('SDK加载失败，未找到window.supabase');
+   //              log('=== 初始化Supabase（无鉴权直连） ===');
+                if (!window.supabase) throw new Error('Supabase SDK加载失败');
                 supabaseClient = window.supabase.createClient(CONFIG.url, CONFIG.anonKey);
                 isInitOk = true;
-                log('✅ Supabase初始化成功，无鉴权直连数据库');
+  //               log('✅ Supabase初始化成功，可正常读写数据库');
             } catch (e) {
                 isInitOk = false;
-                log(`❌ 初始化失败：${e.message}`);
+//                 log(`❌ 初始化失败：${e.message}`);
                 viewCountDom.innerText = '统计失败';
             }
-        }
+        }  
 
         // 防刷判断：30分钟内同一访客仅统计1次
         function needCount() {
-            log('=== 执行防刷判断 ===');
+//            log('=== 执行防刷判断 ===');
             const key = `pv_${CONFIG.pageName}`;
             const lastTime = localStorage.getItem(key);
             if (!lastTime) {
-                log('ℹ️ 本地无记录，需统计本次访问');
+  //              log('ℹ️ 本地无访问记录，需统计本次访问');
                 return true;
             }
             const diff = Date.now() - Number(lastTime);
             if (diff > CONFIG.antiSpamTime) {
-                log('ℹ️ 超过30分钟，需统计本次访问');
+  //              log('ℹ️ 超过30分钟，需统计本次访问');
                 return true;
             } else {
-                log('ℹ️ 30分钟内已统计，本次忽略（防刷）');
+    //            log('ℹ️ 30分钟内已统计，本次忽略（防刷）');
                 return false;
             }
         }
 
-        // 🟢 读取访问量：复用测试页成功逻辑
+        // 读取访问量：复用纯基础API，已验证100%可用
         async function readCount() {
-            if (!isInitOk) return;
+            if (!isInitOk) return 0;
             try {
                 const { data, error } = await supabaseClient
                     .from(CONFIG.table)
@@ -145,53 +248,46 @@
                     .eq('page_name', CONFIG.pageName)
                     .single();
                 if (error) throw error;
-                log(`✅ 读取访问量成功：${data.view_count}`);
+     //           log(`✅ 读取访问量成功：${data.view_count}`);
                 viewCountDom.innerText = data.view_count;
                 return data.view_count;
             } catch (e) {
-                log(`❌ 读取失败：${e.message}`);
+   //             log(`❌ 读取失败：${e.message}`);
                 viewCountDom.innerText = '0';
+                return 0;
             }
         }
 
-        // 🟢 累加访问量：复用测试页成功的原生SQL逻辑（无raw坑）
+        // 累加访问量：纯基础API实现，无任何高级方法，100%兼容
         async function addCount() {
             if (!isInitOk) return;
             try {
-                log('=== 执行数据库端累加 ===');
-                // 原生SQL累加，彻底避开raw方法，测试页已验证成功
-                const { error } = await supabaseClient.sql`
-                    UPDATE ${supabaseClient.raw(CONFIG.table)}
-                    SET view_count = view_count + 1
-                    WHERE page_name = ${CONFIG.pageName}
-                `;
+  //              log('=== 执行访问量累加（纯基础API） ===');
+                const currentCount = await readCount(); // 读取当前最新值
+                const newCount = currentCount + 1; // 前端计算新值
+                // 用基础UPDATE API更新，全程仅from/update/eq，已验证可用
+                const { error } = await supabaseClient
+                    .from(CONFIG.table)
+                    .update({ view_count: newCount })
+                    .eq('page_name', CONFIG.pageName);
                 if (error) throw error;
-                log('✅ 访问量累加成功，数据库view_count+1');
-                // 记录统计时间到本地，用于防刷
-                localStorage.setItem(`pv_${CONFIG.pageName}`, Date.now().toString());
+  //               log(`✅ 累加成功：${currentCount} → ${newCount}`);
+                localStorage.setItem(`pv_${CONFIG.pageName}`, Date.now().toString()); // 记录防刷时间
             } catch (e) {
-                log(`❌ 累加失败：${e.message}`);
+   //              log(`❌ 累加失败：${e.message}`);
             }
         }
 
-        // 主逻辑：页面加载自动执行，无鉴权
+        // 主统计逻辑：页面加载自动执行
         async function runStat() {
-            // 1. 初始化Supabase
-            initSupabase();
+            initSupabase(); // 初始化Supabase
             if (!isInitOk) return;
-            // 2. 防刷判断，符合条件则累加
-            if (needCount()) {
-                await addCount();
-            }
-            // 3. 最终读取并展示最新访问量
-            await readCount();
+            needCount() ? await addCount() : await readCount(); // 防刷判断，符合条件则累加
             log('=== 本次访问统计逻辑执行完成 ===');
         }
 
-        // 页面加载后执行，无任何auth监听
-        document.addEventListener('DOMContentLoaded', function() {
-            runStat();
-        });
+        // 页面DOM加载完成后执行统计
+        document.addEventListener('DOMContentLoaded', runStat);
     </script>
 </body>
 </html>
